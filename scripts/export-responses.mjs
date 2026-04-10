@@ -1,15 +1,18 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { createClient } from "@supabase/supabase-js";
 import ExcelJS from "exceljs";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 const SUPABASE_TABLE = process.env.SUPABASE_TABLE || "research_responses";
 const PAGE_SIZE = 1000;
+
 const COLUMNS = [
   { key: "id", header: "ID", width: 38 },
-  { key: "created_at", header: "Fecha", width: 28 },
+  { key: "last_saved_at", header: "Ultimo guardado", width: 28 },
+  { key: "submitted_at", header: "Enviado", width: 28 },
   { key: "respondent_name", header: "Nombre", width: 26 },
   { key: "respondent_email", header: "Email", width: 30 },
   { key: "q1", header: "Pregunta 1", width: 14 },
@@ -18,12 +21,20 @@ const COLUMNS = [
   { key: "q4", header: "Pregunta 4", width: 14 },
   { key: "q5", header: "Pregunta 5", width: 14 },
   { key: "q6", header: "Pregunta 6", width: 14 },
+  { key: "completed", header: "Completo", width: 12 },
   { key: "source", header: "Origen", width: 18 }
 ];
 
 if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
   throw new Error("Faltan SUPABASE_URL o SUPABASE_SECRET_KEY.");
 }
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  }
+});
 
 const projectRoot = process.cwd();
 const outputDir = path.join(projectRoot, "data");
@@ -33,8 +44,9 @@ await fs.mkdir(outputDir, { recursive: true });
 
 const normalizedRecords = records.map((record) => ({
   id: record.id,
-  created_at: record.created_at,
-  respondent_name: record.respondent_name,
+  last_saved_at: record.last_saved_at,
+  submitted_at: record.submitted_at || "",
+  respondent_name: record.respondent_name || "",
   respondent_email: record.respondent_email || "",
   q1: booleanToSiNo(record.q1),
   q2: booleanToSiNo(record.q2),
@@ -42,6 +54,7 @@ const normalizedRecords = records.map((record) => ({
   q4: booleanToSiNo(record.q4),
   q5: booleanToSiNo(record.q5),
   q6: booleanToSiNo(record.q6),
+  completed: record.completed ? "Si" : "No",
   source: record.source || ""
 }));
 
@@ -62,29 +75,19 @@ async function fetchAllRows() {
 
   while (true) {
     const to = from + PAGE_SIZE - 1;
-    const endpoint = new URL(`${trimTrailingSlash(SUPABASE_URL)}/rest/v1/${SUPABASE_TABLE}`);
-    endpoint.searchParams.set("select", "*");
-    endpoint.searchParams.set("order", "created_at.desc");
+    const { data, error } = await supabase
+      .from(SUPABASE_TABLE)
+      .select("*")
+      .order("last_saved_at", { ascending: false })
+      .range(from, to);
 
-    const response = await fetch(endpoint, {
-      headers: {
-        apikey: SUPABASE_SECRET_KEY,
-        Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
-        "Range-Unit": "items",
-        Range: `${from}-${to}`,
-        Prefer: "count=exact"
-      }
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`No se pudieron leer respuestas de Supabase: ${response.status} ${errorText}`);
+    if (error) {
+      throw new Error(`No se pudieron leer respuestas de Supabase: ${error.message}`);
     }
 
-    const batch = await response.json();
-    allRows.push(...batch);
+    allRows.push(...data);
 
-    if (batch.length < PAGE_SIZE) {
+    if (data.length < PAGE_SIZE) {
       break;
     }
 
@@ -127,9 +130,9 @@ function escapeCsv(value) {
 }
 
 function booleanToSiNo(value) {
-  return value ? "Si" : "No";
-}
+  if (value === null || value === undefined) {
+    return "";
+  }
 
-function trimTrailingSlash(value) {
-  return value.replace(/\/+$/, "");
+  return value ? "Si" : "No";
 }

@@ -8,17 +8,25 @@ const QUESTIONS = [
 ];
 
 const DEMO_STORAGE_KEY = "uade-investigacion-demo-responses";
+const SUBMISSION_TOKEN_KEY = "uade-investigacion-submission-token";
+const SOURCE = "github-pages";
 const config = window.UADE_FORM_CONFIG || {};
 
 const form = document.getElementById("research-form");
 const questionsContainer = document.getElementById("questions");
 const feedback = document.getElementById("feedback");
 const clearDemoButton = document.getElementById("clear-demo-data");
+const nameInput = document.getElementById("respondent-name");
+const emailInput = document.getElementById("respondent-email");
 const repoSyncPath = config.repoSyncPath || "data/responses.xlsx";
+const eventsTableName = config.eventsTableName || "research_response_events";
+
+const supabaseClient = createSupabaseClient();
+let autosaveChain = Promise.resolve();
 
 renderQuestions();
 updateStorageStatus();
-wireAnswerStates();
+wireFormInteractions();
 
 form.addEventListener("submit", handleSubmit);
 clearDemoButton.addEventListener("click", clearDemoData);
@@ -48,12 +56,19 @@ function renderQuestions() {
   }).join("");
 }
 
-function wireAnswerStates() {
+function wireFormInteractions() {
   const radioInputs = Array.from(document.querySelectorAll('input[type="radio"]'));
 
   radioInputs.forEach((input) => {
     input.addEventListener("change", () => {
       refreshAnswerStates(input.name);
+      handleAnswerAutosave(input).catch(handleAutosaveError);
+    });
+  });
+
+  [nameInput, emailInput].forEach((input) => {
+    input.addEventListener("blur", () => {
+      handleProfileAutosave().catch(handleAutosaveError);
     });
   });
 }
@@ -77,16 +92,54 @@ function updateStorageStatus() {
     return;
   }
 
-  if (hasRemoteStorage()) {
-    clearDemoButton.disabled = true;
-    return;
-  }
-
-  clearDemoButton.disabled = getDemoResponses().length === 0;
+  clearDemoButton.disabled = hasRemoteStorage() || getDemoResponses().length === 0;
 }
 
 function hasRemoteStorage() {
-  return Boolean(config.supabaseUrl && config.supabasePublishableKey);
+  return Boolean(supabaseClient);
+}
+
+function createSupabaseClient() {
+  const clientFactory = window.supabase?.createClient;
+  const publicKey = config.supabasePublishableKey;
+
+  if (!clientFactory || !config.supabaseUrl || !publicKey) {
+    return null;
+  }
+
+  return clientFactory(config.supabaseUrl, publicKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  });
+}
+
+async function handleAnswerAutosave(input) {
+  if (!hasRemoteStorage()) {
+    return;
+  }
+
+  const payload = buildEventPayload("answer", {
+    questionKey: input.name,
+    answer: input.value === "true"
+  });
+
+  await queueRemoteEvent(payload);
+}
+
+async function handleProfileAutosave() {
+  if (!hasRemoteStorage()) {
+    return;
+  }
+
+  const snapshot = readCurrentSnapshot();
+  if (!snapshot.respondent_name && !snapshot.respondent_email) {
+    return;
+  }
+
+  await queueRemoteEvent(buildEventPayload("profile"));
 }
 
 async function handleSubmit(event) {
@@ -95,29 +148,30 @@ async function handleSubmit(event) {
   hideFeedback();
 
   try {
-    const payload = buildPayload();
+    const payload = buildSubmissionPayload();
 
     if (hasRemoteStorage()) {
-      await submitToSupabase(payload);
+      await queueRemoteEvent(buildEventPayload("submit", { snapshot: payload }));
       showFeedback(
-        `Respuesta enviada correctamente. Para ver el Excel dentro de GitHub, ejecuta o espera el workflow de sincronizacion y revisa ${repoSyncPath}.`,
+        `Formulario enviado. Las respuestas ya quedaron guardadas en Supabase y luego podran verse en ${repoSyncPath}.`,
         "success"
       );
     } else {
       saveDemoResponse(payload);
       showFeedback(
-        "Configuracion incompleta: la respuesta se guardo solo como demo local en este navegador.",
+        "Supabase todavia no esta configurado. La respuesta completa se guardo solo como demo local en este navegador.",
         "warning"
       );
     }
 
+    resetSubmissionToken();
     form.reset();
     refreshAnswerStates();
     updateStorageStatus();
   } catch (error) {
     console.error(error);
     showFeedback(
-      "No se pudo guardar la respuesta. Revisa docs/config.js o la configuracion de la base.",
+      "No se pudo guardar el formulario. Revisa la configuracion de Supabase o completa los campos obligatorios.",
       "error"
     );
   } finally {
@@ -125,53 +179,117 @@ async function handleSubmit(event) {
   }
 }
 
-function buildPayload() {
-  const formData = new FormData(form);
-  const respondentName = String(formData.get("respondent_name") || "").trim();
-  const respondentEmail = String(formData.get("respondent_email") || "").trim();
+function buildSubmissionPayload() {
+  const snapshot = readCurrentSnapshot({ requireName: true, requireAllQuestions: true });
+  return {
+    respondent_name: snapshot.respondent_name,
+    respondent_email: snapshot.respondent_email,
+    q1: snapshot.answers.q1,
+    q2: snapshot.answers.q2,
+    q3: snapshot.answers.q3,
+    q4: snapshot.answers.q4,
+    q5: snapshot.answers.q5,
+    q6: snapshot.answers.q6,
+    source: SOURCE
+  };
+}
 
-  if (!respondentName) {
+function readCurrentSnapshot(options = {}) {
+  const { requireName = false, requireAllQuestions = false } = options;
+  const formData = new FormData(form);
+  const rawRespondentName = String(formData.get("respondent_name") || "").trim();
+  const respondentName = rawRespondentName.length >= 2 ? rawRespondentName : null;
+  const respondentEmail = String(formData.get("respondent_email") || "").trim() || null;
+  const answers = {};
+
+  if (requireName && rawRespondentName.length < 2) {
     throw new Error("El nombre es obligatorio.");
   }
-
-  const payload = {
-    respondent_name: respondentName,
-    respondent_email: respondentEmail || null,
-    source: "github-pages"
-  };
 
   QUESTIONS.forEach((_, index) => {
     const field = `q${index + 1}`;
     const rawValue = formData.get(field);
 
-    if (rawValue !== "true" && rawValue !== "false") {
+    if (rawValue === "true") {
+      answers[field] = true;
+      return;
+    }
+
+    if (rawValue === "false") {
+      answers[field] = false;
+      return;
+    }
+
+    if (requireAllQuestions) {
       throw new Error(`Falta responder ${field}.`);
     }
 
-    payload[field] = rawValue === "true";
+    answers[field] = null;
   });
+
+  return {
+    respondent_name: respondentName,
+    respondent_email: respondentEmail,
+    answers
+  };
+}
+
+function buildEventPayload(eventType, options = {}) {
+  const snapshot = options.snapshot || readCurrentSnapshot();
+  const payload = {
+    submission_token: getOrCreateSubmissionToken(),
+    event_type: eventType,
+    respondent_name: snapshot.respondent_name,
+    respondent_email: snapshot.respondent_email,
+    question_key: null,
+    answer: null,
+    source: SOURCE,
+    is_complete: eventType === "submit"
+  };
+
+  if (eventType === "answer") {
+    payload.question_key = options.questionKey;
+    payload.answer = options.answer;
+  }
 
   return payload;
 }
 
-async function submitToSupabase(payload) {
-  const tableName = config.tableName || "research_responses";
-  const endpoint = `${trimTrailingSlash(config.supabaseUrl)}/rest/v1/${tableName}`;
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: config.supabasePublishableKey,
-      Authorization: `Bearer ${config.supabasePublishableKey}`,
-      Prefer: "return=minimal"
-    },
-    body: JSON.stringify([payload])
-  });
+function queueRemoteEvent(payload) {
+  autosaveChain = autosaveChain
+    .catch(() => {})
+    .then(async () => {
+      const { error } = await supabaseClient.from(eventsTableName).insert(payload);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Supabase error ${response.status}: ${errorText}`);
+      if (error) {
+        throw error;
+      }
+    });
+
+  return autosaveChain;
+}
+
+function handleAutosaveError(error) {
+  console.error(error);
+  showFeedback(
+    "No se pudo guardar automaticamente una respuesta. Revisa la conexion con Supabase antes de seguir.",
+    "error"
+  );
+}
+
+function getOrCreateSubmissionToken() {
+  const savedToken = sessionStorage.getItem(SUBMISSION_TOKEN_KEY);
+  if (savedToken) {
+    return savedToken;
   }
+
+  const nextToken = crypto.randomUUID();
+  sessionStorage.setItem(SUBMISSION_TOKEN_KEY, nextToken);
+  return nextToken;
+}
+
+function resetSubmissionToken() {
+  sessionStorage.removeItem(SUBMISSION_TOKEN_KEY);
 }
 
 function saveDemoResponse(payload) {
@@ -194,15 +312,16 @@ function getDemoResponses() {
 
 function clearDemoData() {
   localStorage.removeItem(DEMO_STORAGE_KEY);
+  resetSubmissionToken();
   updateStorageStatus();
   showFeedback("Las respuestas demo locales se eliminaron de este navegador.", "warning");
 }
 
 function setLoading(isLoading) {
-  const buttons = form.querySelectorAll("button");
-  buttons.forEach((button) => {
-    button.disabled = isLoading;
-  });
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.disabled = isLoading;
+  }
 }
 
 function showFeedback(message, type) {
@@ -213,8 +332,4 @@ function showFeedback(message, type) {
 function hideFeedback() {
   feedback.className = "feedback";
   feedback.textContent = "";
-}
-
-function trimTrailingSlash(value) {
-  return value.replace(/\/+$/, "");
 }

@@ -1,7 +1,7 @@
 window.UADE_FORM_CONFIG = {
-  supabaseUrl: "",
-  supabasePublishableKey: "",
-  tableName: "research_responses",
+  supabaseUrl: "https://nfamskrakeqvxjzgylyj.supabase.co",
+  supabasePublishableKey: "sb_publishable_unjVN7uCPLAHtAPGLVfJSA_DCSEDyG9",
+  eventsTableName: "research_response_events",
+  responsesViewName: "research_responses",
   repoSyncPath: "data/responses.xlsx"
 };
-

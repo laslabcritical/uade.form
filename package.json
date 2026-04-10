@@ -8,6 +8,7 @@
     "export:data": "node scripts/export-responses.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
     "exceljs": "^4.4.0"
   }
 }
