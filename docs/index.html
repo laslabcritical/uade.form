@@ -21,34 +21,23 @@
       <div class="backdrop"></div>
       <main class="layout">
         <section class="hero">
-          <p class="eyebrow">Formulario publico</p>
-          <h1>UADE Investigacion</h1>
-          <p class="lead">
-            Ejemplo de formulario con preguntas basicas de si o no. Las
-            respuestas pueden guardarse en una base conectada al proyecto y
-            luego exportarse a Excel dentro del repositorio.
-          </p>
-
-          <div class="status-card">
-            <span class="status-dot" id="status-dot"></span>
-            <div>
-              <p class="status-label">Estado del guardado</p>
-              <p class="status-value" id="storage-mode">Verificando configuracion...</p>
-            </div>
-          </div>
-
-          <div class="note-card">
-            <h2>Como funciona</h2>
-            <p>
-              Esta pagina puede publicarse en GitHub Pages. Para guardar
-              respuestas reales, completa la configuracion en
-              <code>docs/config.js</code> y los secretos del workflow.
+          <div class="hero-copy">
+            <p class="eyebrow">Formulario publico</p>
+            <h1>UADE Investigacion</h1>
+            <p class="lead">
+              Formulario de ejemplo con preguntas basicas de si o no. Las
+              respuestas pueden guardarse en una base conectada al proyecto y
+              luego exportarse a Excel dentro del repositorio.
             </p>
           </div>
         </section>
 
         <section class="form-card">
           <form id="research-form" novalidate>
+            <p class="form-intro">
+              Responde cada pregunta con si o no para probar el flujo.
+            </p>
+
             <div class="intro-grid">
               <label class="field">
                 <span>Nombre</span>
@@ -96,4 +85,3 @@
     <script src="app.js"></script>
   </body>
 </html>
-

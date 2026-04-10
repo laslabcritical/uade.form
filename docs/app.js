@@ -13,8 +13,6 @@ const config = window.UADE_FORM_CONFIG || {};
 const form = document.getElementById("research-form");
 const questionsContainer = document.getElementById("questions");
 const feedback = document.getElementById("feedback");
-const storageMode = document.getElementById("storage-mode");
-const statusDot = document.getElementById("status-dot");
 const clearDemoButton = document.getElementById("clear-demo-data");
 const repoSyncPath = config.repoSyncPath || "data/responses.xlsx";
 
@@ -32,8 +30,9 @@ function renderQuestions() {
 
     return `
       <fieldset class="question-card">
-        <legend class="question-title">Pregunta ${questionNumber}</legend>
-        <p class="question-label">${question}</p>
+        <legend class="sr-only">${question}</legend>
+        <p class="question-meta">Pregunta ${questionNumber}</p>
+        <p class="question-text">${question}</p>
         <div class="options">
           <label class="option-pill">
             <input type="radio" name="${fieldName}" value="true" required />
@@ -74,19 +73,16 @@ function refreshAnswerStates(groupName) {
 }
 
 function updateStorageStatus() {
+  if (!clearDemoButton) {
+    return;
+  }
+
   if (hasRemoteStorage()) {
-    storageMode.textContent =
-      "Supabase conectado. Las respuestas se guardan online y luego pueden exportarse a Excel en GitHub.";
-    statusDot.className = "status-dot connected";
     clearDemoButton.disabled = true;
     return;
   }
 
-  const demoCount = getDemoResponses().length;
-  storageMode.textContent =
-    `Modo demo local. Respuestas guardadas en este navegador: ${demoCount}.`;
-  statusDot.className = "status-dot demo";
-  clearDemoButton.disabled = demoCount === 0;
+  clearDemoButton.disabled = getDemoResponses().length === 0;
 }
 
 function hasRemoteStorage() {
