@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UADE Investigacion</title>
+    <meta
+      name="description"
+      content="Formulario de investigacion UADE con preguntas de si o no."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="backdrop"></div>
+      <main class="layout">
+        <section class="hero">
+          <p class="eyebrow">Formulario publico</p>
+          <h1>UADE Investigacion</h1>
+          <p class="lead">
+            Ejemplo de formulario con preguntas basicas de si o no. Las
+            respuestas pueden guardarse en una base conectada al proyecto y
+            luego exportarse a Excel dentro del repositorio.
+          </p>
+
+          <div class="status-card">
+            <span class="status-dot" id="status-dot"></span>
+            <div>
+              <p class="status-label">Estado del guardado</p>
+              <p class="status-value" id="storage-mode">Verificando configuracion...</p>
+            </div>
+          </div>
+
+          <div class="note-card">
+            <h2>Como funciona</h2>
+            <p>
+              Esta pagina puede publicarse en GitHub Pages. Para guardar
+              respuestas reales, completa la configuracion en
+              <code>docs/config.js</code> y los secretos del workflow.
+            </p>
+          </div>
+        </section>
+
+        <section class="form-card">
+          <form id="research-form" novalidate>
+            <div class="intro-grid">
+              <label class="field">
+                <span>Nombre</span>
+                <input
+                  id="respondent-name"
+                  name="respondent_name"
+                  type="text"
+                  placeholder="Ejemplo: Martina Perez"
+                  required
+                />
+              </label>
+
+              <label class="field">
+                <span>Email opcional</span>
+                <input
+                  id="respondent-email"
+                  name="respondent_email"
+                  type="email"
+                  placeholder="nombre@correo.com"
+                />
+              </label>
+            </div>
+
+            <div class="questions" id="questions"></div>
+
+            <div class="actions">
+              <button type="submit" class="primary-button">Enviar respuestas</button>
+              <button type="button" class="ghost-button" id="clear-demo-data">
+                Limpiar demo local
+              </button>
+            </div>
+
+            <p class="helper">
+              Nota: si el proyecto todavia no esta conectado a Supabase, las
+              respuestas se guardan solo como demo local en el navegador.
+            </p>
+
+            <div class="feedback" id="feedback" aria-live="polite"></div>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
+

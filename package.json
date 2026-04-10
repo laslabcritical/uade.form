@@ -1,0 +1,13 @@
+{
+  "name": "uade-form",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Formulario estatico de investigacion UADE con exportacion de respuestas.",
+  "type": "module",
+  "scripts": {
+    "export:data": "node scripts/export-responses.mjs"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  }
+}
