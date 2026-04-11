@@ -18,7 +18,6 @@ const feedback = document.getElementById("feedback");
 const clearDemoButton = document.getElementById("clear-demo-data");
 const nameInput = document.getElementById("respondent-name");
 const emailInput = document.getElementById("respondent-email");
-const repoSyncPath = config.repoSyncPath || "data/responses.xlsx";
 const eventsTableName = config.eventsTableName || "research_response_events";
 
 const supabaseClient = createSupabaseClient();
@@ -153,7 +152,7 @@ async function handleSubmit(event) {
     if (hasRemoteStorage()) {
       await queueRemoteEvent(buildEventPayload("submit", { snapshot: payload }));
       showFeedback(
-        `Formulario enviado. Las respuestas ya quedaron guardadas en Supabase y luego podran verse en ${repoSyncPath}.`,
+        "Formulario enviado. Las respuestas quedaron guardadas en Supabase.",
         "success"
       );
     } else {
