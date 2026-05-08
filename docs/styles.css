@@ -243,10 +243,43 @@ form {
   gap: 28px;
 }
 
+.survey-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.survey-progress span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.survey-progress strong {
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
 .survey-section {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.survey-section[hidden],
+button[hidden] {
+  display: none;
 }
 
 .survey-section h2 {

@@ -33,17 +33,24 @@
               Indicá tu grado de acuerdo con cada afirmación y completá las preguntas finales.
             </p>
 
+            <div class="survey-progress" id="survey-progress" aria-live="polite"></div>
+
             <div class="questions" id="questions"></div>
 
             <div class="actions">
-              <button type="submit" class="primary-button">Enviar respuestas</button>
-              <button type="button" class="ghost-button" id="clear-demo-data">
-                Limpiar demo local
+              <button type="button" class="ghost-button" id="previous-section">
+                Anterior
+              </button>
+              <button type="button" class="primary-button" id="next-section">
+                Siguiente
+              </button>
+              <button type="submit" class="primary-button" id="submit-form">
+                Enviar respuestas
               </button>
             </div>
 
-            <p class="helper">
-              
+            <p class="helper" id="survey-helper">
+              Completá esta dimensión para avanzar.
             </p>
 
             <div class="feedback" id="feedback" aria-live="polite"></div>

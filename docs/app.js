@@ -100,26 +100,31 @@ QUESTIONS.forEach((question, index) => {
   question.number = index + 1;
 });
 const QUESTION_BY_KEY = Object.fromEntries(QUESTIONS.map((question) => [question.key, question]));
-const DEMO_STORAGE_KEY = "uade-investigacion-demo-responses";
 const SUBMISSION_TOKEN_KEY = "uade-investigacion-submission-token";
 const SOURCE = "github-pages";
 const config = window.UADE_FORM_CONFIG || {};
 
 const form = document.getElementById("research-form");
 const questionsContainer = document.getElementById("questions");
+const progress = document.getElementById("survey-progress");
+const helper = document.getElementById("survey-helper");
 const feedback = document.getElementById("feedback");
-const clearDemoButton = document.getElementById("clear-demo-data");
+const previousButton = document.getElementById("previous-section");
+const nextButton = document.getElementById("next-section");
+const submitButton = document.getElementById("submit-form");
 const eventsTableName = config.eventsTableName || "research_response_events";
 
 const supabaseClient = createSupabaseClient();
 let autosaveChain = Promise.resolve();
+let currentSectionIndex = 0;
 
 renderQuestions();
-updateStorageStatus();
 wireFormInteractions();
+updatePagination();
 
 form.addEventListener("submit", handleSubmit);
-clearDemoButton.addEventListener("click", clearDemoData);
+previousButton.addEventListener("click", showPreviousSection);
+nextButton.addEventListener("click", showNextSection);
 
 function createLikertQuestion(key, text) {
   return {
@@ -225,6 +230,103 @@ function wireFormInteractions() {
   });
 }
 
+function showPreviousSection() {
+  if (currentSectionIndex === 0) {
+    return;
+  }
+
+  currentSectionIndex -= 1;
+  updatePagination();
+  hideFeedback();
+  scrollToFormTop();
+}
+
+function showNextSection() {
+  const missingQuestion = getFirstMissingQuestion(SURVEY_SECTIONS[currentSectionIndex]);
+
+  if (missingQuestion) {
+    focusQuestion(missingQuestion);
+    showFeedback("Respondé todas las preguntas de esta dimensión para continuar.", "warning");
+    return;
+  }
+
+  if (currentSectionIndex >= SURVEY_SECTIONS.length - 1) {
+    return;
+  }
+
+  currentSectionIndex += 1;
+  updatePagination();
+  hideFeedback();
+  scrollToFormTop();
+}
+
+function updatePagination() {
+  const sections = Array.from(document.querySelectorAll(".survey-section"));
+  const isFirstSection = currentSectionIndex === 0;
+  const isLastSection = currentSectionIndex === SURVEY_SECTIONS.length - 1;
+  const currentSection = SURVEY_SECTIONS[currentSectionIndex];
+
+  sections.forEach((section, index) => {
+    const isCurrent = index === currentSectionIndex;
+    section.hidden = !isCurrent;
+    section.setAttribute("aria-hidden", String(!isCurrent));
+  });
+
+  progress.innerHTML = `
+    <span>Paso ${currentSectionIndex + 1} de ${SURVEY_SECTIONS.length}</span>
+    <strong>${escapeHtml(currentSection.title)}</strong>
+  `;
+  previousButton.hidden = isFirstSection;
+  nextButton.hidden = isLastSection;
+  submitButton.hidden = !isLastSection;
+  helper.textContent = isLastSection
+    ? "Revisá la última sección y enviá la encuesta cuando esté completa."
+    : "Completá esta dimensión para avanzar.";
+}
+
+function getFirstMissingQuestion(section) {
+  const formData = new FormData(form);
+
+  return section.questions.find((question) => {
+    const value = String(formData.get(question.key) || "").trim();
+    return !value;
+  });
+}
+
+function getFirstMissingQuestionInSurvey() {
+  for (let sectionIndex = 0; sectionIndex < SURVEY_SECTIONS.length; sectionIndex += 1) {
+    const question = getFirstMissingQuestion(SURVEY_SECTIONS[sectionIndex]);
+
+    if (question) {
+      return { question, sectionIndex };
+    }
+  }
+
+  return null;
+}
+
+function focusQuestion(question) {
+  const field = form.elements[question.key];
+
+  if (!field) {
+    return;
+  }
+
+  const element = field instanceof RadioNodeList ? field[0] : field;
+  element?.closest(".question-card")?.scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
+  element?.focus({ preventScroll: true });
+}
+
+function scrollToFormTop() {
+  form.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
 function refreshAnswerStates(groupName) {
   const selector = groupName ? `input[name="${groupName}"]` : 'input[type="radio"]';
   const inputs = document.querySelectorAll(selector);
@@ -233,14 +335,6 @@ function refreshAnswerStates(groupName) {
     const pill = input.closest(".option-pill");
     pill.classList.toggle("is-selected", input.checked);
   });
-}
-
-function updateStorageStatus() {
-  if (!clearDemoButton) {
-    return;
-  }
-
-  clearDemoButton.disabled = hasRemoteStorage() || getDemoResponses().length === 0;
 }
 
 function hasRemoteStorage() {
@@ -283,8 +377,18 @@ async function handleAnswerAutosave(questionKey, answerValue) {
 
 async function handleSubmit(event) {
   event.preventDefault();
-  setLoading(true);
   hideFeedback();
+
+  const missing = getFirstMissingQuestionInSurvey();
+  if (missing) {
+    currentSectionIndex = missing.sectionIndex;
+    updatePagination();
+    focusQuestion(missing.question);
+    showFeedback("Completá todas las preguntas antes de enviar la encuesta.", "warning");
+    return;
+  }
+
+  setLoading(true);
 
   try {
     const payload = buildSubmissionPayload();
@@ -298,7 +402,7 @@ async function handleSubmit(event) {
     } else {
       saveDemoResponse(payload);
       showFeedback(
-        "Supabase todavía no está configurado. La respuesta completa se guardó solo como demo local en este navegador.",
+        "Supabase todavía no está configurado. La respuesta completa quedó registrada en la consola de este navegador.",
         "warning"
       );
     }
@@ -306,7 +410,8 @@ async function handleSubmit(event) {
     resetSubmissionToken();
     form.reset();
     refreshAnswerStates();
-    updateStorageStatus();
+    currentSectionIndex = 0;
+    updatePagination();
   } catch (error) {
     console.error(error);
     showFeedback(
@@ -412,35 +517,22 @@ function resetSubmissionToken() {
 }
 
 function saveDemoResponse(payload) {
-  const responses = getDemoResponses();
-  responses.push({
+  console.info("Respuesta sin Supabase:", {
     ...payload,
     created_at: new Date().toISOString()
   });
-  localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(responses));
-}
-
-function getDemoResponses() {
-  try {
-    return JSON.parse(localStorage.getItem(DEMO_STORAGE_KEY) || "[]");
-  } catch (error) {
-    console.error(error);
-    return [];
-  }
-}
-
-function clearDemoData() {
-  localStorage.removeItem(DEMO_STORAGE_KEY);
-  resetSubmissionToken();
-  updateStorageStatus();
-  showFeedback("Las respuestas demo locales se eliminaron de este navegador.", "warning");
 }
 
 function setLoading(isLoading) {
-  const submitButton = form.querySelector('button[type="submit"]');
   if (submitButton) {
     submitButton.disabled = isLoading;
   }
+
+  [previousButton, nextButton].forEach((button) => {
+    if (button) {
+      button.disabled = isLoading;
+    }
+  });
 }
 
 function showFeedback(message, type) {
