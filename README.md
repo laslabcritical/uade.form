@@ -1,11 +1,12 @@
 # UADE Form
 
-Formulario estatico de investigacion para publicar en GitHub Pages con guardado en Supabase.
+Encuesta estatica de investigacion para publicar en GitHub Pages con guardado en Supabase.
 
 ## Lo importante
 
 - La web publica vive en `docs/`.
-- Cada click en `Si` o `No` puede guardarse inmediatamente en Supabase.
+- La encuesta usa escala de acuerdo, opciones cerradas y un campo de texto.
+- Cada respuesta puede guardarse inmediatamente en Supabase.
 - Ya no hay exportacion a Excel ni workflows de sincronizacion.
 
 ## Estructura
@@ -21,6 +22,8 @@ Formulario estatico de investigacion para publicar en GitHub Pages con guardado 
 3. Ejecuta el script de `supabase/schema.sql`.
 4. En `Project Settings` > `API`, copia `Project URL` y `Publishable key`.
 5. Pegalos en `docs/config.js`.
+
+El script de `supabase/schema.sql` borra la tabla/vista anterior y crea la estructura nueva para esta encuesta.
 
 ## Probar localmente
 

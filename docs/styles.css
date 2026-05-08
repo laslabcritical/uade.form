@@ -1,14 +1,15 @@
 :root {
-  --bg: #f5efe4;
-  --bg-soft: rgba(255, 255, 255, 0.58);
-  --text: #1e2430;
-  --muted: #5b6474;
-  --accent: #b43f26;
-  --accent-soft: #f2c27e;
-  --line: rgba(30, 36, 48, 0.12);
-  --card-shadow: 0 24px 70px rgba(34, 31, 27, 0.12);
+  --bg: #f6f8fb;
+  --bg-soft: rgba(255, 255, 255, 0.82);
+  --text: #17202a;
+  --muted: #526071;
+  --accent: #256b63;
+  --accent-strong: #154b45;
+  --accent-soft: #dcefeb;
+  --line: rgba(23, 32, 42, 0.13);
+  --card-shadow: 0 18px 48px rgba(19, 35, 49, 0.1);
   --success: #1f7a48;
-  --warning: #995f0d;
+  --warning: #8a610f;
   --error: #9a2d2d;
 }
 
@@ -24,10 +25,7 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--text);
-  background:
-    radial-gradient(circle at top left, rgba(241, 184, 106, 0.55), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(180, 63, 38, 0.15), transparent 28%),
-    linear-gradient(160deg, #f7f2ea 0%, #efe4d4 52%, #eee5d9 100%);
+  background: linear-gradient(180deg, #f8fbfc 0%, #edf4f3 100%);
   font-family: "IBM Plex Sans", sans-serif;
 }
 
@@ -63,7 +61,7 @@ fieldset {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  width: min(980px, calc(100% - 32px));
+  width: min(1080px, calc(100% - 32px));
   margin: 0 auto;
   padding: 48px 0 72px;
 }
@@ -72,14 +70,13 @@ fieldset {
 .form-card {
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 28px;
+  border-radius: 8px;
   background: var(--bg-soft);
-  backdrop-filter: blur(16px);
   box-shadow: var(--card-shadow);
 }
 
 .hero {
-  padding: 40px 34px 32px;
+  padding: 38px 34px 34px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -90,7 +87,7 @@ fieldset {
 .eyebrow {
   margin: 0;
   font-size: 0.82rem;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--accent);
   font-weight: 700;
@@ -107,8 +104,8 @@ h2,
 
 h1 {
   margin: 0;
-  font-size: clamp(2.4rem, 5vw, 4.5rem);
-  line-height: 0.95;
+  font-size: clamp(2.2rem, 5vw, 4.2rem);
+  line-height: 1;
 }
 
 .lead,
@@ -125,7 +122,7 @@ h1 {
 .note-card,
 .question-card,
 .feedback {
-  border-radius: 22px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.66);
 }
@@ -190,7 +187,10 @@ h1 {
 }
 
 .form-card {
-  padding: 28px;
+  padding: 28px 0 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 form {
@@ -200,7 +200,8 @@ form {
 }
 
 .form-intro {
-  text-align: center;
+  text-align: left;
+  max-width: 720px;
 }
 
 .intro-grid {
@@ -223,7 +224,7 @@ form {
 .field input {
   width: 100%;
   padding: 15px 16px;
-  border-radius: 16px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.86);
   color: var(--text);
@@ -232,19 +233,40 @@ form {
 
 .field input:focus-visible,
 .option-pill:has(input:focus-visible) {
-  outline: 2px solid rgba(180, 63, 38, 0.42);
+  outline: 2px solid rgba(37, 107, 99, 0.38);
   outline-offset: 2px;
 }
 
 .questions {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 28px;
+}
+
+.survey-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.survey-section h2 {
+  margin: 0;
+  padding: 0 0 4px;
+  color: var(--accent-strong);
+  font-size: clamp(1.25rem, 2vw, 1.55rem);
+  line-height: 1.25;
+}
+
+.section-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .question-card {
   padding: 20px;
   animation: rise 0.5s ease both;
+  background: rgba(255, 255, 255, 0.84);
 }
 
 .sr-only {
@@ -266,7 +288,7 @@ form {
   margin: 0 0 10px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(180, 63, 38, 0.1);
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 0.78rem;
   font-weight: 700;
@@ -276,16 +298,23 @@ form {
 
 .question-text {
   margin: 0 0 16px;
-  font-size: 1.14rem;
+  font-size: 1.08rem;
   line-height: 1.35;
-  color: var(--muted);
+  color: var(--text);
   font-weight: 600;
 }
 
 .options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 12px;
+}
+
+.likert-options {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.choice-options {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .option-pill {
@@ -293,11 +322,12 @@ form {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 120px;
+  min-height: 54px;
   padding: 12px 18px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.9);
+  text-align: center;
   cursor: pointer;
   transition:
     transform 180ms ease,
@@ -308,7 +338,7 @@ form {
 
 .option-pill:hover {
   transform: translateY(-1px);
-  border-color: rgba(180, 63, 38, 0.45);
+  border-color: rgba(37, 107, 99, 0.45);
 }
 
 .option-pill input {
@@ -322,16 +352,10 @@ form {
   font-weight: 700;
 }
 
-.option-pill.active-yes {
-  background: rgba(31, 122, 72, 0.1);
-  border-color: rgba(31, 122, 72, 0.36);
-  box-shadow: 0 12px 28px rgba(31, 122, 72, 0.12);
-}
-
-.option-pill.active-no {
-  background: rgba(154, 45, 45, 0.08);
-  border-color: rgba(154, 45, 45, 0.28);
-  box-shadow: 0 12px 28px rgba(154, 45, 45, 0.08);
+.option-pill.is-selected {
+  background: rgba(37, 107, 99, 0.11);
+  border-color: rgba(37, 107, 99, 0.42);
+  box-shadow: 0 12px 28px rgba(37, 107, 99, 0.1);
 }
 
 .actions {
@@ -356,8 +380,8 @@ form {
 
 .primary-button {
   color: #fff7f0;
-  background: linear-gradient(135deg, #be492c 0%, #8f2f1c 100%);
-  box-shadow: 0 18px 30px rgba(143, 47, 28, 0.24);
+  background: linear-gradient(135deg, #28786f 0%, #154b45 100%);
+  box-shadow: 0 18px 30px rgba(21, 75, 69, 0.2);
 }
 
 .ghost-button {
@@ -441,18 +465,22 @@ code {
     padding: 24px 0 48px;
   }
 
-  .hero,
-  .form-card {
+  .hero {
     padding: 22px;
-    border-radius: 22px;
+    border-radius: 8px;
+  }
+
+  .form-card {
+    padding: 0;
   }
 
   .intro-grid {
     grid-template-columns: 1fr;
   }
 
-  .options {
-    flex-direction: column;
+  .likert-options,
+  .choice-options {
+    grid-template-columns: 1fr;
   }
 
   .option-pill {

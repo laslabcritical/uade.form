@@ -1,12 +1,105 @@
-const QUESTIONS = [
-  "Te resulto facil encontrar la informacion principal?",
-  "Usas herramientas digitales todos los dias para estudiar o trabajar?",
-  "Consideras util responder encuestas breves en linea?",
-  "Te gustaria recibir novedades sobre futuras investigaciones?",
-  "Sentiste que el formulario fue claro y rapido de completar?",
-  "Participarias nuevamente en una investigacion similar?"
+const LIKERT_OPTIONS = [
+  { value: "totalmente_en_desacuerdo", label: "Totalmente en desacuerdo" },
+  { value: "en_desacuerdo", label: "En desacuerdo" },
+  { value: "ni_de_acuerdo_ni_en_desacuerdo", label: "Ni de acuerdo ni en desacuerdo" },
+  { value: "de_acuerdo", label: "De acuerdo" },
+  { value: "totalmente_de_acuerdo", label: "Totalmente de acuerdo" }
 ];
 
+const SURVEY_SECTIONS = [
+  {
+    title: "Dimensión A. Visibilidad y presencia del fenómeno",
+    questions: [
+      "En los últimos años aumentaron las conversaciones sobre apuestas online entre estudiantes.",
+      "Las apuestas online forman parte de la cultura digital adolescente actual.",
+      "Los videojuegos y las apuestas aparecen cada vez más mezclados entre sí.",
+      "Los estudiantes naturalizan las apuestas deportivas.",
+      "Las apuestas online aparecen con frecuencia en redes sociales utilizadas por adolescentes.",
+      "Los estudiantes hablan de apuestas o casinos online dentro de la escuela."
+    ].map((text, index) => createLikertQuestion(`a${index + 1}`, text))
+  },
+  {
+    title: "Dimensión B. Impacto escolar y subjetivo",
+    questions: [
+      "Las apuestas online pueden afectar el rendimiento académico.",
+      "El uso problemático de apuestas o videojuegos puede alterar el descanso y la atención de los estudiantes.",
+      "He observado estudiantes con ansiedad o irritabilidad vinculadas al juego o las apuestas.",
+      "Algunos estudiantes utilizan el juego o las apuestas como forma de escape emocional.",
+      "Las apuestas online pueden afectar los vínculos entre compañeros.",
+      "Las deudas o intercambios de dinero entre estudiantes representan un problema creciente."
+    ].map((text, index) => createLikertQuestion(`b${index + 1}`, text))
+  },
+  {
+    title: "Dimensión C. Vulnerabilidad y factores sociales",
+    questions: [
+      "Los influencers y streamers favorecen la normalización de las apuestas.",
+      "La publicidad de apuestas online influye sobre adolescentes.",
+      "El fácil acceso a billeteras virtuales facilita el ingreso temprano a las apuestas.",
+      "La necesidad de pertenencia grupal puede favorecer el ingreso al juego.",
+      "Los adolescentes tienen más acceso a plataformas de apuestas del que las personas adultas creen.",
+      "La problemática debe pensarse más allá de la responsabilidad individual del estudiante."
+    ].map((text, index) => createLikertQuestion(`c${index + 1}`, text))
+  },
+  {
+    title: "Dimensión D. Formación docente y respuesta institucional",
+    questions: [
+      "Me siento preparado/a para detectar señales de juego problemático en estudiantes.",
+      "La escuela debería trabajar pedagógicamente la problemática de apuestas online.",
+      "Las instituciones educativas actualmente cuentan con herramientas suficientes para intervenir.",
+      "Sería importante incorporar capacitaciones específicas sobre apuestas online y consumos digitales.",
+      "La intervención frente a estas situaciones debería involucrar también a las familias.",
+      "El trabajo interdisciplinario es necesario para abordar esta problemática.",
+      "Considero importante contar con protocolos institucionales específicos."
+    ].map((text, index) => createLikertQuestion(`d${index + 1}`, text))
+  },
+  {
+    title: "Dimensión E. Experiencia directa",
+    questions: [
+      "He observado estudiantes utilizando plataformas de apuestas.",
+      "He escuchado conversaciones sobre apuestas deportivas dentro de la institución.",
+      "He observado estudiantes realizando compras frecuentes dentro de videojuegos.",
+      "He detectado preocupación familiar vinculada al uso problemático del juego.",
+      "Considero que esta problemática aumentó durante los últimos años."
+    ].map((text, index) => createLikertQuestion(`e${index + 1}`, text))
+  },
+  {
+    title: "Preguntas de cierre cuantitativo",
+    questions: [
+      createChoiceQuestion(
+        "cierre1",
+        "¿Ha recibido capacitación específica sobre apuestas online o consumos problemáticos?",
+        ["Sí", "No"]
+      ),
+      createChoiceQuestion(
+        "cierre2",
+        "¿Su institución cuenta con protocolos específicos sobre esta temática?",
+        ["Sí", "No", "No sabe"]
+      ),
+      createChoiceQuestion(
+        "cierre3",
+        "¿Qué rol ocupa en la institución?",
+        ["Docente", "Directivo/a", "Preceptor/a", "Equipo de orientación", "Otro"]
+      ),
+      createChoiceQuestion(
+        "cierre4",
+        "Nivel educativo alcanzado",
+        ["Primario", "Secundario", "Otro"]
+      ),
+      {
+        key: "cierre5",
+        text: "Nivel educativo donde enseña",
+        type: "text",
+        placeholder: "Ejemplo: Secundario"
+      }
+    ]
+  }
+];
+
+const QUESTIONS = SURVEY_SECTIONS.flatMap((section) => section.questions);
+QUESTIONS.forEach((question, index) => {
+  question.number = index + 1;
+});
+const QUESTION_BY_KEY = Object.fromEntries(QUESTIONS.map((question) => [question.key, question]));
 const DEMO_STORAGE_KEY = "uade-investigacion-demo-responses";
 const SUBMISSION_TOKEN_KEY = "uade-investigacion-submission-token";
 const SOURCE = "github-pages";
@@ -16,8 +109,6 @@ const form = document.getElementById("research-form");
 const questionsContainer = document.getElementById("questions");
 const feedback = document.getElementById("feedback");
 const clearDemoButton = document.getElementById("clear-demo-data");
-const nameInput = document.getElementById("respondent-name");
-const emailInput = document.getElementById("respondent-email");
 const eventsTableName = config.eventsTableName || "research_response_events";
 
 const supabaseClient = createSupabaseClient();
@@ -30,44 +121,106 @@ wireFormInteractions();
 form.addEventListener("submit", handleSubmit);
 clearDemoButton.addEventListener("click", clearDemoData);
 
-function renderQuestions() {
-  questionsContainer.innerHTML = QUESTIONS.map((question, index) => {
-    const questionNumber = index + 1;
-    const fieldName = `q${questionNumber}`;
+function createLikertQuestion(key, text) {
+  return {
+    key,
+    text,
+    type: "likert",
+    options: LIKERT_OPTIONS
+  };
+}
 
-    return `
-      <fieldset class="question-card">
-        <legend class="sr-only">${question}</legend>
-        <p class="question-meta">Pregunta ${questionNumber}</p>
-        <p class="question-text">${question}</p>
-        <div class="options">
+function createChoiceQuestion(key, text, labels) {
+  return {
+    key,
+    text,
+    type: "choice",
+    options: labels.map((label) => ({
+      value: slugify(label),
+      label
+    }))
+  };
+}
+
+function renderQuestions() {
+  questionsContainer.innerHTML = SURVEY_SECTIONS.map((section, sectionIndex) => `
+    <section class="survey-section" aria-labelledby="section-${sectionIndex + 1}">
+      <h2 id="section-${sectionIndex + 1}">${escapeHtml(section.title)}</h2>
+      <div class="section-questions">
+        ${section.questions.map(renderQuestion).join("")}
+      </div>
+    </section>
+  `).join("");
+}
+
+function renderQuestion(question) {
+  if (question.type === "text") {
+    return renderTextQuestion(question);
+  }
+
+  return renderRadioQuestion(question);
+}
+
+function renderRadioQuestion(question) {
+  const optionClass = question.type === "likert" ? "likert-options" : "choice-options";
+
+  return `
+    <fieldset class="question-card">
+      <legend class="sr-only">${escapeHtml(question.text)}</legend>
+      <p class="question-meta">Pregunta ${question.number}</p>
+      <p class="question-text">${escapeHtml(question.text)}</p>
+      <div class="options ${optionClass}">
+        ${question.options.map((option) => `
           <label class="option-pill">
-            <input type="radio" name="${fieldName}" value="true" required />
-            <span>Si</span>
+            <input
+              type="radio"
+              name="${question.key}"
+              value="${escapeHtml(option.value)}"
+              required
+            />
+            <span>${escapeHtml(option.label)}</span>
           </label>
-          <label class="option-pill">
-            <input type="radio" name="${fieldName}" value="false" required />
-            <span>No</span>
-          </label>
-        </div>
-      </fieldset>
-    `;
-  }).join("");
+        `).join("")}
+      </div>
+    </fieldset>
+  `;
+}
+
+function renderTextQuestion(question) {
+  return `
+    <fieldset class="question-card">
+      <legend class="sr-only">${escapeHtml(question.text)}</legend>
+      <p class="question-meta">Pregunta ${question.number}</p>
+      <label class="field text-question">
+        <span>${escapeHtml(question.text)}</span>
+        <input
+          type="text"
+          name="${question.key}"
+          placeholder="${escapeHtml(question.placeholder)}"
+          required
+        />
+      </label>
+    </fieldset>
+  `;
 }
 
 function wireFormInteractions() {
   const radioInputs = Array.from(document.querySelectorAll('input[type="radio"]'));
+  const textInputs = Array.from(document.querySelectorAll('input[type="text"]'));
 
   radioInputs.forEach((input) => {
     input.addEventListener("change", () => {
       refreshAnswerStates(input.name);
-      handleAnswerAutosave(input).catch(handleAutosaveError);
+      handleAnswerAutosave(input.name, input.value).catch(handleAutosaveError);
     });
   });
 
-  [nameInput, emailInput].forEach((input) => {
+  textInputs.forEach((input) => {
     input.addEventListener("blur", () => {
-      handleProfileAutosave().catch(handleAutosaveError);
+      const value = input.value.trim();
+      if (value) {
+        handleAnswerAutosave(input.name, value).catch(handleAutosaveError);
+      }
     });
   });
 }
@@ -78,11 +231,7 @@ function refreshAnswerStates(groupName) {
 
   inputs.forEach((input) => {
     const pill = input.closest(".option-pill");
-    pill.classList.remove("active-yes", "active-no");
-
-    if (input.checked) {
-      pill.classList.add(input.value === "true" ? "active-yes" : "active-no");
-    }
+    pill.classList.toggle("is-selected", input.checked);
   });
 }
 
@@ -115,30 +264,21 @@ function createSupabaseClient() {
   });
 }
 
-async function handleAnswerAutosave(input) {
+async function handleAnswerAutosave(questionKey, answerValue) {
   if (!hasRemoteStorage()) {
     return;
+  }
+
+  if (!QUESTION_BY_KEY[questionKey]) {
+    throw new Error(`Pregunta desconocida: ${questionKey}`);
   }
 
   const payload = buildEventPayload("answer", {
-    questionKey: input.name,
-    answer: input.value === "true"
+    questionKey,
+    answerValue
   });
 
   await queueRemoteEvent(payload);
-}
-
-async function handleProfileAutosave() {
-  if (!hasRemoteStorage()) {
-    return;
-  }
-
-  const snapshot = readCurrentSnapshot();
-  if (!snapshot.respondent_name && !snapshot.respondent_email) {
-    return;
-  }
-
-  await queueRemoteEvent(buildEventPayload("profile"));
 }
 
 async function handleSubmit(event) {
@@ -158,7 +298,7 @@ async function handleSubmit(event) {
     } else {
       saveDemoResponse(payload);
       showFeedback(
-        "Supabase todavia no esta configurado. La respuesta completa se guardo solo como demo local en este navegador.",
+        "Supabase todavía no está configurado. La respuesta completa se guardó solo como demo local en este navegador.",
         "warning"
       );
     }
@@ -170,7 +310,7 @@ async function handleSubmit(event) {
   } catch (error) {
     console.error(error);
     showFeedback(
-      "No se pudo guardar el formulario. Revisa la configuracion de Supabase o completa los campos obligatorios.",
+      "No se pudo guardar el formulario. Revisá la configuración de Supabase o completá todos los campos obligatorios.",
       "error"
     );
   } finally {
@@ -179,76 +319,56 @@ async function handleSubmit(event) {
 }
 
 function buildSubmissionPayload() {
-  const snapshot = readCurrentSnapshot({ requireName: true, requireAllQuestions: true });
+  const snapshot = readCurrentSnapshot({ requireAllQuestions: true });
+
   return {
-    respondent_name: snapshot.respondent_name,
-    respondent_email: snapshot.respondent_email,
-    q1: snapshot.answers.q1,
-    q2: snapshot.answers.q2,
-    q3: snapshot.answers.q3,
-    q4: snapshot.answers.q4,
-    q5: snapshot.answers.q5,
-    q6: snapshot.answers.q6,
+    answers: snapshot.answers,
     source: SOURCE
   };
 }
 
 function readCurrentSnapshot(options = {}) {
-  const { requireName = false, requireAllQuestions = false } = options;
+  const { requireAllQuestions = false } = options;
   const formData = new FormData(form);
-  const rawRespondentName = String(formData.get("respondent_name") || "").trim();
-  const respondentName = rawRespondentName.length >= 2 ? rawRespondentName : null;
-  const respondentEmail = String(formData.get("respondent_email") || "").trim() || null;
   const answers = {};
 
-  if (requireName && rawRespondentName.length < 2) {
-    throw new Error("El nombre es obligatorio.");
-  }
+  QUESTIONS.forEach((question) => {
+    const rawValue = formData.get(question.key);
+    const value = String(rawValue || "").trim();
 
-  QUESTIONS.forEach((_, index) => {
-    const field = `q${index + 1}`;
-    const rawValue = formData.get(field);
+    if (!value) {
+      if (requireAllQuestions) {
+        throw new Error(`Falta responder ${question.key}.`);
+      }
 
-    if (rawValue === "true") {
-      answers[field] = true;
+      answers[question.key] = null;
       return;
     }
 
-    if (rawValue === "false") {
-      answers[field] = false;
-      return;
-    }
-
-    if (requireAllQuestions) {
-      throw new Error(`Falta responder ${field}.`);
-    }
-
-    answers[field] = null;
+    answers[question.key] = value;
   });
 
-  return {
-    respondent_name: respondentName,
-    respondent_email: respondentEmail,
-    answers
-  };
+  return { answers };
 }
 
 function buildEventPayload(eventType, options = {}) {
-  const snapshot = options.snapshot || readCurrentSnapshot();
   const payload = {
     submission_token: getOrCreateSubmissionToken(),
     event_type: eventType,
-    respondent_name: snapshot.respondent_name,
-    respondent_email: snapshot.respondent_email,
     question_key: null,
-    answer: null,
+    answer_value: null,
+    answers: null,
     source: SOURCE,
     is_complete: eventType === "submit"
   };
 
   if (eventType === "answer") {
     payload.question_key = options.questionKey;
-    payload.answer = options.answer;
+    payload.answer_value = options.answerValue;
+  }
+
+  if (eventType === "submit") {
+    payload.answers = options.snapshot.answers;
   }
 
   return payload;
@@ -271,7 +391,7 @@ function queueRemoteEvent(payload) {
 function handleAutosaveError(error) {
   console.error(error);
   showFeedback(
-    "No se pudo guardar automaticamente una respuesta. Revisa la conexion con Supabase antes de seguir.",
+    "No se pudo guardar automáticamente una respuesta. Revisá la conexión con Supabase antes de seguir.",
     "error"
   );
 }
@@ -331,4 +451,22 @@ function showFeedback(message, type) {
 function hideFeedback() {
   feedback.className = "feedback";
   feedback.textContent = "";
+}
+
+function slugify(value) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
