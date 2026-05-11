@@ -85,12 +85,11 @@ const SURVEY_SECTIONS = [
         "Nivel educativo alcanzado",
         ["Primario", "Secundario", "Otro"]
       ),
-      {
-        key: "cierre5",
-        text: "Nivel educativo donde enseña",
-        type: "text",
-        placeholder: "Ejemplo: Secundario"
-      }
+      createChoiceQuestion(
+        "cierre5",
+        "Nivel educativo donde enseña",
+        ["Primaria", "Secundaria"]
+      )
     ]
   }
 ];
