@@ -20,42 +20,93 @@
     <div class="page-shell">
       <div class="backdrop"></div>
       <main class="layout">
-        <section class="hero">
-          <div class="hero-copy">
-            <p class="eyebrow">Encuesta pública</p>
-            <h1>Apuestas online, videojuegos y escuela</h1>
+        <section class="consent-card" id="consent-screen" aria-labelledby="consent-title">
+          <img
+            class="brand-logo"
+            src="logo-uade.jpg"
+            alt="UADE - Universidad Argentina de la Empresa"
+          />
+          <div class="consent-copy">
+            <p class="eyebrow">Investigación académica</p>
+            <h1 id="consent-title">Descargo de responsabilidad y consentimiento</h1>
+            <p>
+              La presente investigación es realizada en el marco de actividades académicas de Universidad Argentina de la Empresa. La participación es voluntaria y las respuestas brindadas serán completamente anónimas y confidenciales.
+            </p>
+            <p>
+              Los datos recolectados serán utilizados exclusivamente con fines académicos y/o científicos, resguardando la identidad de las personas participantes en todo momento. No se solicitará información que permita identificar de manera directa a quienes respondan.
+            </p>
+            <p>
+              Al continuar con la encuesta/cuestionario/entrevista, usted manifiesta haber sido informado/a sobre los objetivos generales de la investigación y presta su consentimiento para participar de manera libre y voluntaria.
+            </p>
+          </div>
+          <div class="consent-actions" aria-label="Confirmación de consentimiento">
+            <button type="button" class="ghost-button" id="decline-consent">
+              Cancelar
+            </button>
+            <button type="button" class="primary-button" id="accept-consent">
+              Confirmar y continuar
+            </button>
           </div>
         </section>
 
-        <section class="form-card">
-          <form id="research-form" novalidate>
-            <p class="form-intro">
-              Indicá tu grado de acuerdo con cada afirmación y completá las preguntas finales.
+        <section class="declined-card" id="declined-screen" aria-labelledby="declined-title" hidden>
+          <img
+            class="brand-logo"
+            src="logo-uade.jpg"
+            alt="UADE - Universidad Argentina de la Empresa"
+          />
+          <div class="consent-copy">
+            <p class="eyebrow">Investigación académica</p>
+            <h1 id="declined-title">Gracias por tu tiempo</h1>
+            <p>
+              No se realizará la encuesta. Tu decisión no queda registrada en la base de datos.
             </p>
-
-            <div class="survey-progress" id="survey-progress" aria-live="polite"></div>
-
-            <div class="questions" id="questions"></div>
-
-            <div class="actions">
-              <button type="button" class="ghost-button" id="previous-section">
-                Anterior
-              </button>
-              <button type="button" class="primary-button" id="next-section">
-                Siguiente
-              </button>
-              <button type="submit" class="primary-button" id="submit-form">
-                Enviar respuestas
-              </button>
-            </div>
-
-            <p class="helper" id="survey-helper">
-              Completá esta dimensión para avanzar.
-            </p>
-
-            <div class="feedback" id="feedback" aria-live="polite"></div>
-          </form>
+          </div>
         </section>
+
+        <div class="survey-shell" id="survey-shell" hidden>
+          <section class="hero">
+            <img
+              class="brand-logo"
+              src="logo-uade.jpg"
+              alt="UADE - Universidad Argentina de la Empresa"
+            />
+            <div class="hero-copy">
+              <p class="eyebrow">Encuesta pública</p>
+              <h1>Apuestas online, videojuegos y escuela</h1>
+            </div>
+          </section>
+
+          <section class="form-card">
+            <form id="research-form" novalidate>
+              <p class="form-intro">
+                Indicá tu grado de acuerdo con cada afirmación y completá las preguntas finales.
+              </p>
+
+              <div class="survey-progress" id="survey-progress" aria-live="polite"></div>
+
+              <div class="questions" id="questions"></div>
+
+              <div class="actions">
+                <button type="button" class="ghost-button" id="previous-section">
+                  Anterior
+                </button>
+                <button type="button" class="primary-button" id="next-section">
+                  Siguiente
+                </button>
+                <button type="submit" class="primary-button" id="submit-form">
+                  Enviar respuestas
+                </button>
+              </div>
+
+              <p class="helper" id="survey-helper">
+                Completá esta dimensión para avanzar.
+              </p>
+
+              <div class="feedback" id="feedback" aria-live="polite"></div>
+            </form>
+          </section>
+        </div>
       </main>
     </div>
 

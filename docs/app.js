@@ -104,6 +104,11 @@ const SUBMISSION_TOKEN_KEY = "uade-investigacion-submission-token";
 const SOURCE = "github-pages";
 const config = window.UADE_FORM_CONFIG || {};
 
+const consentScreen = document.getElementById("consent-screen");
+const declinedScreen = document.getElementById("declined-screen");
+const surveyShell = document.getElementById("survey-shell");
+const acceptConsentButton = document.getElementById("accept-consent");
+const declineConsentButton = document.getElementById("decline-consent");
 const form = document.getElementById("research-form");
 const questionsContainer = document.getElementById("questions");
 const progress = document.getElementById("survey-progress");
@@ -117,11 +122,10 @@ const eventsTableName = config.eventsTableName || "research_response_events";
 const supabaseClient = createSupabaseClient();
 let autosaveChain = Promise.resolve();
 let currentSectionIndex = 0;
+let isSurveyReady = false;
 
-renderQuestions();
-wireFormInteractions();
-updatePagination();
-
+acceptConsentButton.addEventListener("click", acceptConsent);
+declineConsentButton.addEventListener("click", declineConsent);
 form.addEventListener("submit", handleSubmit);
 previousButton.addEventListener("click", showPreviousSection);
 nextButton.addEventListener("click", showNextSection);
@@ -145,6 +149,33 @@ function createChoiceQuestion(key, text, labels) {
       label
     }))
   };
+}
+
+function acceptConsent() {
+  consentScreen.hidden = true;
+  declinedScreen.hidden = true;
+  surveyShell.hidden = false;
+  initializeSurvey();
+  scrollToSurveyStart();
+}
+
+function declineConsent() {
+  consentScreen.hidden = true;
+  surveyShell.hidden = true;
+  declinedScreen.hidden = false;
+  resetSubmissionToken();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function initializeSurvey() {
+  if (isSurveyReady) {
+    return;
+  }
+
+  renderQuestions();
+  wireFormInteractions();
+  updatePagination();
+  isSurveyReady = true;
 }
 
 function renderQuestions() {
@@ -322,6 +353,13 @@ function focusQuestion(question) {
 
 function scrollToFormTop() {
   form.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+function scrollToSurveyStart() {
+  surveyShell.scrollIntoView({
     behavior: "smooth",
     block: "start"
   });
