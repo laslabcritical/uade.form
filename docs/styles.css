@@ -73,7 +73,8 @@ fieldset {
 .hero,
 .form-card,
 .consent-card,
-.declined-card {
+.declined-card,
+.completed-card {
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 8px;
@@ -83,7 +84,8 @@ fieldset {
 
 .hero,
 .consent-card,
-.declined-card {
+.declined-card,
+.completed-card {
   padding: 38px 34px 34px;
   display: flex;
   flex-direction: column;
@@ -93,7 +95,8 @@ fieldset {
 }
 
 .consent-card,
-.declined-card {
+.declined-card,
+.completed-card {
   min-height: min(680px, calc(100vh - 96px));
   justify-content: center;
 }
@@ -539,7 +542,8 @@ code {
 @media (max-width: 960px) {
   .hero,
   .consent-card,
-  .declined-card {
+  .declined-card,
+  .completed-card {
     gap: 18px;
   }
 
@@ -556,13 +560,15 @@ code {
 
   .hero,
   .consent-card,
-  .declined-card {
+  .declined-card,
+  .completed-card {
     padding: 22px;
     border-radius: 8px;
   }
 
   .consent-card,
-  .declined-card {
+  .declined-card,
+  .completed-card {
     min-height: calc(100vh - 72px);
   }
 

@@ -106,6 +106,7 @@ const config = window.UADE_FORM_CONFIG || {};
 
 const consentScreen = document.getElementById("consent-screen");
 const declinedScreen = document.getElementById("declined-screen");
+const completedScreen = document.getElementById("completed-screen");
 const surveyShell = document.getElementById("survey-shell");
 const acceptConsentButton = document.getElementById("accept-consent");
 const declineConsentButton = document.getElementById("decline-consent");
@@ -154,6 +155,7 @@ function createChoiceQuestion(key, text, labels) {
 function acceptConsent() {
   consentScreen.hidden = true;
   declinedScreen.hidden = true;
+  completedScreen.hidden = true;
   surveyShell.hidden = false;
   initializeSurvey();
   scrollToSurveyStart();
@@ -162,6 +164,7 @@ function acceptConsent() {
 function declineConsent() {
   consentScreen.hidden = true;
   surveyShell.hidden = true;
+  completedScreen.hidden = true;
   declinedScreen.hidden = false;
   resetSubmissionToken();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -433,16 +436,8 @@ async function handleSubmit(event) {
 
     if (hasRemoteStorage()) {
       await queueRemoteEvent(buildEventPayload("submit", { snapshot: payload }));
-      showFeedback(
-        "Formulario enviado. Las respuestas quedaron guardadas en Supabase.",
-        "success"
-      );
     } else {
       saveDemoResponse(payload);
-      showFeedback(
-        "Supabase todavía no está configurado. La respuesta completa quedó registrada en la consola de este navegador.",
-        "warning"
-      );
     }
 
     resetSubmissionToken();
@@ -450,6 +445,7 @@ async function handleSubmit(event) {
     refreshAnswerStates();
     currentSectionIndex = 0;
     updatePagination();
+    showCompletedScreen();
   } catch (error) {
     console.error(error);
     showFeedback(
@@ -459,6 +455,14 @@ async function handleSubmit(event) {
   } finally {
     setLoading(false);
   }
+}
+
+function showCompletedScreen() {
+  consentScreen.hidden = true;
+  declinedScreen.hidden = true;
+  surveyShell.hidden = true;
+  completedScreen.hidden = false;
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function buildSubmissionPayload() {
