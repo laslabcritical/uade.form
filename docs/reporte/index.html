@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Reporte preliminar UADE</title>
+    <meta
+      name="description"
+      content="Reporte preliminar de respuestas agregadas de la encuesta UADE."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="reporte.css" />
+  </head>
+  <body>
+    <div class="report-shell">
+      <header class="report-header">
+        <img
+          class="brand-logo"
+          src="../logo-uade.jpg"
+          alt="UADE - Universidad Argentina de la Empresa"
+        />
+        <div>
+          <p class="eyebrow">Reporte preliminar</p>
+          <h1>Apuestas online, videojuegos y escuela</h1>
+        </div>
+        <div class="header-actions">
+          <p class="refresh-meta" id="refresh-meta">Sin actualizar</p>
+          <button class="refresh-button" id="refresh-report" type="button">
+            Actualizar
+          </button>
+        </div>
+      </header>
+
+      <main class="report-main">
+        <section class="status-banner" id="status-banner" aria-live="polite">
+          Cargando datos agregados...
+        </section>
+
+        <section class="kpi-grid" id="kpi-grid" aria-label="Indicadores principales"></section>
+
+        <section class="dashboard-grid">
+          <article class="panel" aria-labelledby="funnel-title">
+            <div class="panel-heading">
+              <p class="eyebrow">Avance</p>
+              <h2 id="funnel-title">Embudo de respuestas</h2>
+            </div>
+            <div class="funnel-chart" id="funnel-chart"></div>
+          </article>
+
+          <article class="panel" aria-labelledby="dimensions-title">
+            <div class="panel-heading">
+              <p class="eyebrow">Likert 1 a 5</p>
+              <h2 id="dimensions-title">Promedio por dimensión</h2>
+            </div>
+            <div class="dimension-chart" id="dimension-chart"></div>
+          </article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel wide-panel" aria-labelledby="ranking-title">
+            <div class="panel-heading">
+              <p class="eyebrow">Mayor acuerdo</p>
+              <h2 id="ranking-title">Preguntas con promedio más alto</h2>
+            </div>
+            <div class="ranking-chart" id="ranking-chart"></div>
+          </article>
+
+          <article class="panel" aria-labelledby="closing-title">
+            <div class="panel-heading">
+              <p class="eyebrow">Cierre</p>
+              <h2 id="closing-title">Distribución de respuestas</h2>
+            </div>
+            <div class="choice-chart" id="choice-chart"></div>
+          </article>
+        </section>
+
+        <section class="panel heatmap-panel" aria-labelledby="heatmap-title">
+          <div class="panel-heading">
+            <p class="eyebrow">Detalle</p>
+            <h2 id="heatmap-title">Mapa de calor por pregunta</h2>
+          </div>
+          <div class="heatmap-scroll">
+            <div class="heatmap" id="heatmap"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="reporte.js"></script>
+  </body>
+</html>
