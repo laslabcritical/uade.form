@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Documentos compartidos · UADE</title>
+    <meta name="description" content="Materiales y recursos de investigación de UADE para compartir y descargar.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap">
+    <link rel="stylesheet" href="documentos.css">
+    <script src="config.js" defer></script>
+    <script src="documentos.js" defer></script>
+  </head>
+  <body>
+    <main id="uade-documentos">
+      <div class="ud-top">
+        <img class="ud-logo" src="logo-uade.svg" width="160" height="56" alt="UADE - Universidad Argentina de la Empresa">
+        <details class="ud-share">
+          <summary>Compartir página</summary>
+          <div class="ud-share-content">
+            <img src="qr/qr-documentos.png" width="196" height="196" alt="QR de acceso a Documentos compartidos de UADE">
+            <a href="qr/qr-documentos.png" download="QR-documentos-UADE.png">Descargar QR</a>
+            <a href="qr/qr-documentos.svg" download="QR-documentos-UADE.svg">QR para imprimir</a>
+            <button type="button" id="ud-copy-link">Copiar enlace</button>
+            <p id="ud-share-status" role="status" aria-live="polite"></p>
+          </div>
+        </details>
+      </div>
+      <header class="ud-hero">
+        <div>
+          <p class="ud-eyebrow">Investigación académica</p>
+          <h1>Documentos compartidos</h1>
+          <p class="ud-subtitle">Compartí materiales y descargá recursos desde tu computadora o celular.</p>
+        </div>
+        <button type="button" class="ud-primary" id="ud-open-upload" aria-expanded="false" aria-controls="ud-upload">Subir documentos</button>
+      </header>
+      <form class="ud-upload" id="ud-upload" hidden>
+        <div class="ud-upload-head">
+          <h2>Compartir documentos</h2>
+          <button type="button" id="ud-close-upload">Cerrar</button>
+        </div>
+        <p id="ud-upload-unavailable" class="ud-notice" hidden>La carga de archivos no está habilitada en este momento.</p>
+        <fieldset id="ud-upload-fields" disabled>
+          <div class="ud-drop">
+            <label for="ud-files">Elegí un archivo de tu computadora o celular</label>
+            <input type="file" id="ud-files" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.jpg,.jpeg,.png,.webp,.gif,.zip,.txt,.csv,.mp3,.mp4" required>
+            <p class="ud-small">Documentos, imágenes, audio, video y ZIP · Hasta 25 MB por archivo.</p>
+          </div>
+          <div class="ud-upload-bottom">
+            <label for="ud-category">Categoría
+              <select id="ud-category">
+                <option>Bibliografía</option><option>Presentaciones</option><option>Material de trabajo</option><option>Otros</option>
+              </select>
+            </label>
+            <button class="ud-primary" id="ud-submit" type="submit" disabled>Subir archivo</button>
+          </div>
+          <div id="ud-verification" class="ud-verification"></div>
+          <p class="ud-small">Los archivos que compartas estarán disponibles para todas las personas que visiten esta página.</p>
+        </fieldset>
+        <p id="ud-upload-status" class="ud-status" role="status" aria-live="polite"></p>
+      </form>
+      <section class="ud-library" aria-labelledby="ud-library-title" aria-busy="true" id="ud-library">
+        <div class="ud-heading"><h2 id="ud-library-title">Explorá los materiales</h2><span id="ud-count" class="ud-count"></span></div>
+        <div class="ud-filters">
+          <div class="ud-search"><input id="ud-search" type="search" aria-label="Buscar documentos" placeholder="Buscar por nombre…"></div>
+          <select id="ud-filter" aria-label="Filtrar por categoría"><option value="">Todas las categorías</option><option>Bibliografía</option><option>Presentaciones</option><option>Material de trabajo</option><option>Otros</option></select>
+        </div>
+        <div id="ud-results" class="ud-results"></div>
+        <p id="ud-empty" class="ud-empty" hidden></p>
+        <p id="ud-status" class="ud-status" role="status" aria-live="polite">Cargando documentos…</p>
+        <button type="button" id="ud-retry" hidden>Volver a intentar</button>
+      </section>
+      <noscript><p>Activá JavaScript para consultar y compartir documentos.</p></noscript>
+      <p class="ud-footer">UADE · Investigación</p>
+    </main>
+  </body>
+</html>

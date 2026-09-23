@@ -1,0 +1,14 @@
+{
+  "name": "uade-documentos-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test worker.test.mjs",
+    "check": "wrangler deploy --dry-run --outdir .build",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": { "wrangler": "4.137.0" }
+}
