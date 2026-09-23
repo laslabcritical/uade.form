@@ -14,7 +14,7 @@ function apiURL(env, path) {
 async function github(env, path, options = {}) {
   const response = await fetch(apiURL(env, path), {
     ...options,
-    redirect: 'error',
+    redirect: 'manual',
     headers: {
       'Authorization': `Bearer ${env.GITHUB_TOKEN}`,
       'User-Agent': 'UADE-documentos',
