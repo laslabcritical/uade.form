@@ -1,15 +1,5 @@
 {
-  "files": [
-    {
-      "id": "afa0bfa8-2e27-4099-83a1-b69cedaca3c1",
-      "name": "UNLa.pdf",
-      "category": "Presentaciones",
-      "size": 10155434,
-      "uploadedAt": "2026-09-23T21:01:57.528Z",
-      "path": "archivos/afa0bfa8-2e27-4099-83a1-b69cedaca3c1.pdf",
-      "blobSha": "6ae9221722939e228789d83e9b586c0f978650a6"
-    }
-  ],
-  "usedBytes": 10372236,
+  "files": [],
+  "usedBytes": 0,
   "maxTotalBytes": 1000000000
 }
