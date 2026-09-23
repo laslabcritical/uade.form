@@ -29,6 +29,21 @@
       : `${(bytes / 1_000_000).toLocaleString("es-AR", { maximumFractionDigits: 1 })} MB`;
   }
 
+  function updateSpace(data) {
+    if (Number.isFinite(data.usedBytes)) {
+      el("ud-space").textContent = `${formatBytes(data.usedBytes)} utilizados de 1 GB · Hasta 25 MB por archivo.`;
+    }
+  }
+
+  function encodeFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.slice(reader.result.indexOf(",") + 1));
+      reader.onerror = () => reject(new Error("No se pudo leer el archivo. Volvé a seleccionarlo."));
+      reader.readAsDataURL(file);
+    });
+  }
+
   function documentRecord(file, fromAPI) {
     if (!file || typeof file.name !== "string" || !file.name.trim() || !Number.isFinite(file.size) || file.size < 0) {
       throw new Error("El listado de documentos no tiene un formato válido.");
@@ -103,6 +118,7 @@
         const url = api ? apiURL(`files${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`) : "catalogo.json";
         const data = await getJSON(url);
         if (!Array.isArray(data.files)) throw new Error("No se pudo leer el listado de documentos.");
+        updateSpace(data);
         nextFiles.push(...data.files.map((file) => documentRecord(file, Boolean(api))));
         cursor = api ? data.cursor || "" : "";
         if (cursor && (typeof cursor !== "string" || cursors.has(cursor))) throw new Error("No se pudo completar el listado de documentos.");
@@ -182,22 +198,25 @@
     }
     busy = true;
     updateUploadControls();
-    status("ud-upload-status", `Subiendo ${file.name}…`);
+    status("ud-upload-status", `Preparando ${file.name}…`);
     try {
+      const content = await encodeFile(file);
+      status("ud-upload-status", `Subiendo ${file.name}…`);
       const data = await getJSON(apiURL("files"), {
         method: "POST",
         signal: AbortSignal.timeout(180_000),
         headers: {
-          "Content-Type": "application/octet-stream",
+          "Content-Type": "application/json",
           "X-File-Name": encodeURIComponent(file.name),
           "X-File-Category": encodeURIComponent(el("ud-category").value),
           "X-File-Size": String(file.size),
           "X-Turnstile-Token": verificationToken
         },
-        body: file
+        body: JSON.stringify({ encoding: "base64", content })
       });
       const saved = documentRecord(data.file, true);
       files.unshift(saved);
+      updateSpace(data);
       el("ud-search").value = "";
       el("ud-filter").value = "";
       el("ud-files").value = "";

@@ -1,5 +1,5 @@
+import { catalog, saveFile, getFile, StorageError, MAX_TOTAL_BYTES } from "./github-store.mjs";
 export const MAX_BYTES = 25_000_000;
-const PREFIX = "files/";
 const ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const EXTENSIONS = new Set("pdf doc docx xls xlsx ppt pptx odt ods odp jpg jpeg png webp gif zip txt csv mp3 mp4".split(" "));
 const CATEGORIES = new Set(["Bibliografía", "Presentaciones", "Material de trabajo", "Otros"]);
@@ -17,43 +17,12 @@ function origins(env) {
 }
 
 function uploadEnabled(env) {
-  return env.UPLOADS_ENABLED === "true" && Boolean(env.DOCUMENTS && env.TURNSTILE_SECRET_KEY && env.UPLOAD_LIMITER);
-}
-
-function record(object) {
-  return {
-    id: object.key.slice(PREFIX.length),
-    name: object.customMetadata?.name || "Documento",
-    category: object.customMetadata?.category || "Otros",
-    size: object.size,
-    uploadedAt: object.uploaded.toISOString()
-  };
+  return env.UPLOADS_ENABLED === "true" && Boolean(env.GITHUB_TOKEN && env.GITHUB_REPOSITORY && env.TURNSTILE_SECRET_KEY && env.UPLOAD_LIMITER);
 }
 
 function decodedHeader(request, name) {
   try { return decodeURIComponent(request.headers.get(name) || "").normalize("NFC"); }
   catch { throw new HTTPError(400, "Los datos del archivo no son válidos."); }
-}
-
-async function limitedBody(request, expected) {
-  if (!request.body) throw new HTTPError(400, "El archivo está vacío.");
-  const reader = request.body.getReader();
-  const bytes = new Uint8Array(expected);
-  let offset = 0;
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      if (offset + value.byteLength > expected) throw new HTTPError(413, "El tamaño del archivo supera el declarado.");
-      bytes.set(value, offset);
-      offset += value.byteLength;
-    }
-    if (offset !== expected) throw new HTTPError(400, "El archivo llegó incompleto. Intentá nuevamente.");
-    return bytes;
-  } catch (error) {
-    await reader.cancel().catch(() => {});
-    throw error;
-  } finally { reader.releaseLock(); }
 }
 
 async function verifyUpload(request, env, origin) {
@@ -77,7 +46,7 @@ async function verifyUpload(request, env, origin) {
 async function upload(request, env, origin) {
   if (!origin) throw new HTTPError(403, "Abrí la página de documentos para subir un archivo.");
   if (!uploadEnabled(env)) throw new HTTPError(503, "La carga de archivos no está habilitada en este momento.");
-  if (request.headers.get("Content-Type") !== "application/octet-stream") throw new HTTPError(415, "El formato de la solicitud no es válido.");
+  if (request.headers.get("Content-Type") !== "application/json") throw new HTTPError(415, "El formato de la solicitud no es válido.");
   const name = decodedHeader(request, "X-File-Name");
   const category = decodedHeader(request, "X-File-Category");
   const expected = Number(request.headers.get("X-File-Size"));
@@ -88,14 +57,7 @@ async function upload(request, env, origin) {
   }
   if (!CATEGORIES.has(category)) throw new HTTPError(400, "Seleccioná una categoría válida.");
   await verifyUpload(request, env, origin);
-  const bytes = await limitedBody(request, expected);
-  const key = PREFIX + crypto.randomUUID();
-  const object = await env.DOCUMENTS.put(key, bytes, {
-    httpMetadata: { contentType: "application/octet-stream" },
-    customMetadata: { name, category }
-  });
-  if (!object) throw new HTTPError(503, "No se pudo guardar el archivo. Intentá nuevamente.");
-  return json({ file: record(object) }, 201);
+  return json(await saveFile(request, env, { name, category, size: expected }), 201);
 }
 
 async function route(request, env, origin) {
@@ -105,33 +67,28 @@ async function route(request, env, origin) {
     return new Response(null, { status: 204 });
   }
   if (url.pathname === "/status" && request.method === "GET") {
-    return json({ uploadsEnabled: uploadEnabled(env), maxFileBytes: MAX_BYTES });
+    return json({ uploadsEnabled: uploadEnabled(env), maxFileBytes: MAX_BYTES, maxTotalBytes: MAX_TOTAL_BYTES });
   }
-  if (!env.DOCUMENTS) throw new HTTPError(503, "El servicio de documentos no está disponible.");
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY) throw new HTTPError(503, "El servicio de documentos no está disponible.");
   if (url.pathname === "/files") {
     if (request.method === "POST") return upload(request, env, origin);
     if (request.method !== "GET") throw new HTTPError(405, "Operación no permitida.");
-    const cursor = url.searchParams.get("cursor") || undefined;
-    if (cursor && cursor.length > 2048) throw new HTTPError(400, "La página solicitada no es válida.");
-    const listing = await env.DOCUMENTS.list({ prefix: PREFIX, limit: 200, cursor, include: ["customMetadata"] });
-    const files = listing.objects.filter((object) => ID.test(object.key.slice(PREFIX.length))).map(record);
-    return json({ files, cursor: listing.truncated ? listing.cursor : null });
+    const index = await catalog(env);
+    return json({ ...index, cursor: null, maxTotalBytes: MAX_TOTAL_BYTES });
   }
   const match = /^\/files\/([^/]+)$/.exec(url.pathname);
   if (!match || !ID.test(match[1])) throw new HTTPError(404, "El documento no existe.");
   if (!["GET", "HEAD"].includes(request.method)) throw new HTTPError(405, "Operación no permitida.");
-  const key = PREFIX + match[1];
-  const object = request.method === "HEAD" ? await env.DOCUMENTS.head(key) : await env.DOCUMENTS.get(key);
-  if (!object) throw new HTTPError(404, "El documento ya no está disponible.");
-  const name = object.customMetadata?.name || "documento";
+  const { file, body } = await getFile(env, match[1], request.method === "HEAD");
+  const name = file.name;
   const safeName = name.replace(/[^A-Za-z0-9._ -]/g, "_").slice(0, 180);
   const encodedName = encodeURIComponent(name).replace(/['()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
-  return new Response(request.method === "HEAD" ? null : object.body, {
+  return new Response(body, {
     headers: {
       "Content-Type": "application/octet-stream",
       "Content-Disposition": `attachment; filename="${safeName}"; filename*=UTF-8''${encodedName}`,
-      "Content-Length": String(object.size),
-      "ETag": object.httpEtag,
+      "Content-Length": String(file.size),
+      "ETag": `"${file.blobSha}"`,
       "Content-Security-Policy": "sandbox; default-src 'none'"
     }
   });
@@ -150,7 +107,7 @@ export default {
       }
       response = await route(request, env, origin);
     } catch (error) {
-      response = json({ error: error instanceof HTTPError ? error.message : "El servicio no pudo completar la operación. Intentá nuevamente." }, error instanceof HTTPError ? error.status : 503);
+      response = json({ error: error instanceof HTTPError || error instanceof StorageError ? error.message : "El servicio no pudo completar la operación. Intentá nuevamente." }, error instanceof HTTPError || error instanceof StorageError ? error.status : 503);
     }
     const headers = new Headers(response.headers);
     headers.set("Cache-Control", "no-store");

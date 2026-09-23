@@ -1,80 +1,77 @@
 # Servicio de documentos
 
-Worker HTTP con un bucket R2. No utiliza base de datos. Los nombres y categorías
-se guardan como metadatos de cada objeto. La página estática sigue en GitHub Pages.
+Cloudflare Worker con archivos en GitHub, sin base de datos ni R2. La página
+estática continúa en GitHub Pages. Utiliza Workers Free y las cuotas de GitHub.
 
 ## Activación
 
-Requiere una cuenta de Cloudflare con R2 habilitado. Su activación y las tarifas
-dependen de esa cuenta; no se crea ni contrata nada al hacer commit en GitHub.
+1. Ejecutá `npm ci` en esta carpeta y autenticá con `npx wrangler login`.
+2. Creá un token fine-grained de GitHub con acceso únicamente a `uade.form` y
+   permiso Contents → Read and write. Guardalo con `npx wrangler secret put GITHUB_TOKEN`.
+3. Creá un widget Turnstile para `laslabcritical.github.io` y guardá su secreto
+   con `npx wrangler secret put TURNSTILE_SECRET_KEY`.
+4. Revisá repositorio, rama, origen y `UPLOADS_ENABLED` en `wrangler.jsonc`.
+5. Ejecutá `npm test`, `npm run check` y `npm run deploy`.
+6. Configurá la URL del Worker y la clave pública Turnstile en
+   `../../docs/documentos/config.js` y publicá los cambios en GitHub.
+7. Probá una carga y su descarga desde la página publicada antes de repartir el QR.
 
-1. En esta carpeta, con Node 22 o posterior, ejecutá `npm ci`.
-2. Autenticá tu cuenta con `npx wrangler login`.
-3. Creá el bucket privado con `npx wrangler r2 bucket create uade-documentos`.
-   Si usás otro nombre, actualizá `r2_buckets` en `wrangler.jsonc`.
-4. Creá un widget de Turnstile para `laslabcritical.github.io` en Cloudflare.
-   Guardá su clave secreta con `npx wrangler secret put TURNSTILE_SECRET_KEY`.
-   Nunca agregues esta clave al repositorio o al JavaScript público.
-5. En `wrangler.jsonc`, cambiá `UPLOADS_ENABLED` a `"true"`. `ALLOWED_ORIGINS`
-   ya incluye el origen de este GitHub Pages; admite varios separados por comas.
-   Las dos `namespace_id` de límites deben estar libres en esa cuenta para no
-   compartir contadores con otros Workers.
-6. Ejecutá `npm test`, `npm run check` y después `npm run deploy`.
-7. Copiá la URL HTTPS que informa Cloudflare en `apiBaseUrl` de
-   `docs/documentos/config.js`, sin `/files` ni otras rutas. Copiá la clave
-   **pública** de Turnstile en `turnstileSiteKey`.
-8. Publicá estos cambios en GitHub. El sitio sigue usando `main` → `/docs`;
-   no necesita cambios de permisos ni workflows adicionales.
-9. En la página publicada, subí un archivo pequeño, recargá y descargalo para
-   comprobar la configuración real antes de repartir el QR.
+Los secretos nunca se agregan al JavaScript público ni al repositorio. `.env`
+y `.dev.vars` están ignorados por Git. Renovar el token antes de su vencimiento.
+El despliegue del Worker se hace con Wrangler; el push a GitHub publica Pages,
+pero no despliega automáticamente el Worker.
 
-Con `apiBaseUrl` vacío se muestra el catálogo estático y las cargas quedan
-deshabilitadas. Con el Worker configurado, `/status` confirma si todos los
-requisitos para cargar están disponibles. Ninguna respuesta exitosa se envía
-antes de que R2 confirme el guardado.
+## Límites
+
+- 25 MB por archivo (25 000 000 bytes).
+- 1 GB total (1 000 000 000 bytes), contando todos los archivos de la versión
+  actual del repositorio. El historial de Git no está incluido en esta cuota.
+- 1000 documentos en el catálogo.
+- 5 intentos de carga y 120 solicitudes por minuto e IP; los contadores de
+  Cloudflare son por ubicación y quienes comparten conexión comparten límite.
+
+Al alcanzar la capacidad se rechazan cargas. No se habilitan recursos pagos ni
+ampliaciones automáticas. También aplican las cuotas de Workers Free y de la API
+GitHub: el servicio no ofrece tráfico ilimitado. Git conserva versiones antiguas;
+borrar documentos no elimina su historial. Los blobs de cargas interrumpidas
+pueden permanecer hasta la recolección de objetos de GitHub.
 
 ## Operación
 
-- `GET /status`: disponibilidad de cargas y límite por archivo.
-- `GET /files?cursor=…`: listado paginado de objetos y metadatos.
-- `POST /files`: cuerpo binario, hasta 25 MB. Requiere verificación Turnstile
-  válida para el dominio autorizado y la acción `upload`.
-- `GET /files/:id` y `HEAD /files/:id`: descarga pública con nombre original.
-- No hay endpoint de eliminación ni de reemplazo para visitantes. El personal
-  autorizado administra los archivos desde el panel R2 de Cloudflare.
+- `GET /status`: disponibilidad y límites configurados.
+- `GET /files`: catálogo público y ocupación registrada al guardar.
+- `POST /files`: JSON `{ "encoding": "base64", "content": "…" }`, con
+  `X-File-Name`, `X-File-Category` codificados con encodeURIComponent,
+  `X-File-Size` en bytes originales y `X-Turnstile-Token` válido.
+- `GET /files/:id` y `HEAD /files/:id`: descarga con nombre original.
 
-Los límites iniciales son 5 intentos de carga y 120 solicitudes por minuto por
-IP. Los límites de Workers se aplican en cada ubicación de Cloudflare, no son
-una cuota global de almacenamiento ni un tope de facturación. Quienes compartan
-la misma conexión también comparten esos límites.
+El Worker transmite el JSON hacia GitHub sin convertir el archivo completo en
+memoria. Comprueba tamaño real y cuota antes de confirmar un commit que incorpora
+archivo y catálogo juntos. Si otra carga modifica la rama, vuelve a leerla y
+comprueba la cuota nuevamente. No confirma éxito antes del commit.
 
-Los formatos admitidos están enumerados en `worker.mjs` y en el selector de la
-página. Los archivos se sirven como descargas adjuntas y no como páginas web.
-La validación de formato usa la extensión; no incluye análisis antivirus.
-Los nombres originales y categorías son públicos. No se guardan cuentas de
-usuarios ni historiales de navegación. Cada nueva carga recibe un identificador
-propio, incluso si su nombre coincide con otro archivo.
+Los visitantes no pueden borrar ni reemplazar. La administración elimina desde
+GitHub el archivo y su entrada en `docs/documentos/catalogo.json`. Cada carga
+recibe un identificador propio. Los nombres y categorías son públicos.
+Los formatos admitidos se validan por extensión; no se incluye antivirus.
+Las descargas usan attachment, nosniff y sandbox para evitar servir HTML activo.
 
-Para pausar cargas, cambiá `UPLOADS_ENABLED` a `"false"` y volvé a desplegar.
-No hace falta eliminar archivos ni interrumpir las descargas.
+Para pausar cargas, cambiá `UPLOADS_ENABLED` a `"false"` y desplegá nuevamente.
+Con `apiBaseUrl` vacío, el navegador usa el catálogo estático sin permitir cargas.
 
-## Desarrollo y comprobación
+## Comprobación
 
 ```bash
-npm ci
 npm test
 npm run check
 ```
 
-`npm run check` valida el paquete con Wrangler sin desplegarlo. Los archivos de
-trabajo `.build/`, `.wrangler/` y `.dev.vars` están ignorados por Git.
+Las pruebas cubren cuota, tamaño real, concurrencia, permisos, Turnstile,
+frecuencia, errores de GitHub y descargas. `check` empaqueta sin desplegar.
+Para desarrollo, utilizá una rama separada y claves de prueba Turnstile;
+nunca desactives la verificación en producción.
 
-`npm run dev` inicia el Worker con almacenamiento local de Wrangler. Para probar
-cargas locales usá las claves de prueba oficiales de Turnstile, configurá la
-clave secreta en `.dev.vars`, habilitá `UPLOADS_ENABLED` y agregá el origen local
-a `ALLOWED_ORIGINS`. Restaurá las claves públicas y los orígenes de producción
-antes del commit. Nunca habilites un bypass de la verificación en producción.
-
-Referencias: [R2 Workers API](https://developers.cloudflare.com/r2/api/workers/workers-api-reference/),
-[validación Turnstile](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/),
-[límites por frecuencia](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/).
+Referencias: [Git blobs](https://docs.github.com/en/rest/git/blobs),
+[Git trees](https://docs.github.com/en/rest/git/trees),
+[límites de Workers](https://developers.cloudflare.com/workers/platform/limits/),
+[tokens de GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).

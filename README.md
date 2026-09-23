@@ -14,7 +14,7 @@ Encuesta estatica de investigacion para publicar en GitHub Pages con guardado en
 - `docs/`: pagina publica del formulario.
 - `docs/config.js`: conexion del frontend con Supabase.
 - `docs/documentos/`: biblioteca pública de documentos, independiente de Supabase.
-- `services/documentos/`: servicio de cargas y descargas con Cloudflare Workers y R2, sin base de datos.
+- `services/documentos/`: servicio de cargas y descargas con Cloudflare Workers y GitHub, sin base de datos.
 - `supabase/schema.sql`: tabla, politicas y vista consolidada.
 
 ## Supabase
@@ -62,38 +62,25 @@ Para verla localmente, serví `docs/` con el comando anterior y abrí `/document
 
 ### Almacenamiento
 
-Esta sección no usa Supabase, SQL, D1 ni una base de datos. Los archivos y sus
-datos asociados (nombre y categoría) se guardan juntos en Cloudflare R2.
-El Worker permite subir sin cuenta de GitHub; valida tamaño y formato, aplica
-límites de frecuencia y verifica Turnstile. Las descargas son públicas.
+Los documentos se guardan en `docs/documentos/archivos/` y sus datos en
+`docs/documentos/catalogo.json`, sin base de datos. Un Worker de Cloudflare
+permite cargar sin cuenta de GitHub y guarda archivo y catálogo en un mismo commit.
 
-El código está preparado, pero **las cargas permanecen deshabilitadas hasta
-conectar el servicio**. No se incluyeron archivos ficticios ni cargas simuladas.
-La configuración pública `docs/documentos/config.js` está vacía para evitar
-apuntar a un servicio inexistente. La activación se describe en
+El límite es **1 GB total**, **25 MB por archivo** y 1000 documentos. La cuota
+cuenta los archivos de la versión actual del repositorio, incluido el catálogo;
+no incluye versiones anteriores del historial de Git. Al alcanzar el límite se
+rechazan nuevas cargas. No se utiliza R2 ni se activa un plan pago.
+
+Las cargas requieren Turnstile y un token fine-grained de GitHub limitado a este
+repositorio con permiso Contents de lectura y escritura. Ambos secretos quedan
+en el Worker, nunca en el navegador ni en Git. Las instrucciones están en
 [services/documentos/README.md](services/documentos/README.md).
 
-Sin ese servicio, la página muestra `docs/documentos/catalogo.json`. Se pueden
-publicar documentos desde Git agregándolos en `docs/documentos/archivos/` y
-anotando su ruta relativa, nombre, categoría, tamaño en bytes y fecha ISO:
-
-```json
-{
-  "files": [
-    {
-      "path": "archivos/guia.pdf",
-      "name": "Guía de lectura.pdf",
-      "category": "Bibliografía",
-      "size": 123456,
-      "uploadedAt": "2026-09-23T15:00:00Z"
-    }
-  ]
-}
-```
-
-Cuando se conecta el Worker, el listado proviene de R2; los archivos del catálogo
-estático no se migran automáticamente. Para eliminarlos de R2, la administración
-usa el panel de Cloudflare. Los visitantes no tienen permisos de borrado.
+Los visitantes pueden subir y descargar, pero no eliminar ni reemplazar archivos.
+La administración puede borrar archivos y sus entradas del catálogo desde GitHub;
+las versiones anteriores permanecen en el historial. Las descargas del Worker
+están disponibles al confirmar el commit, sin esperar la reconstrucción de Pages.
+Con `apiBaseUrl` vacío, la página muestra el catálogo estático y deshabilita cargas.
 
 ### Logo
 

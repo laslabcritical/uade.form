@@ -6,11 +6,10 @@
   "workers_dev": true,
   "vars": {
     "ALLOWED_ORIGINS": "https://laslabcritical.github.io",
-    "UPLOADS_ENABLED": "false"
+    "UPLOADS_ENABLED": "true",
+    "GITHUB_REPOSITORY": "laslabcritical/uade.form",
+    "GITHUB_BRANCH": "main"
   },
-  "r2_buckets": [
-    { "binding": "DOCUMENTS", "bucket_name": "uade-documentos" }
-  ],
   "ratelimits": [
     { "name": "UPLOAD_LIMITER", "namespace_id": "92301", "simple": { "limit": 5, "period": 60 } },
     { "name": "READ_LIMITER", "namespace_id": "92302", "simple": { "limit": 120, "period": 60 } }
